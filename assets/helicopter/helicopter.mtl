@@ -1,0 +1,79 @@
+# Blender MTL File: 'heli.blend'
+# Material Count: 7
+
+newmtl mtl_body
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.100000 0.100000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+map_Kd body_map_diffuse.png
+map_Ks body_map_specular.png
+map_Ka body_map_ao.png
+map_Ke black.png
+
+newmtl mtl_rotor
+Ns 521.432482
+Ka 0.567166 0.567166 0.567166
+Kd 0.060719 0.060719 0.060719
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+map_Kd rotor_map_diffuse.png
+map_Ks black.png
+map_Ka white.png
+map_Ke black.png
+
+newmtl mtl_light
+Ns 143.999983
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+map_Ke white.png
+map_Ks black.png
+map_Ka white.png
+map_Kd black.png
+
+newmtl mtl_light_metal
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+map_Kd light_map_diffuse.png
+map_Ks white.png
+map_Ka white.png
+map_Ke black.png
+
+newmtl search_light
+Ns 56.806129
+Ka 0.500000 0.500000 0.500000
+Kd 0.500000 0.500000 0.500000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+map_Kd spotlight_map_diffuse.png
+map_Ks spotlight_map_specular.png
+map_Ka spotlight_map_ao.png
+map_Ke spotlight_map_emissive.png
+
+newmtl mtl_strobe
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+map_Kd strobe_map_diffuse.png
+map_Ks white.png
+map_Ka white.png
+map_Ke strobe_map_emissive.png
+
+newmtl mtl_stobe_metal
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+map_Kd strobe_metal_diffuse.png
+map_Ks white.png
+map_Ka white.png
+map_Ke black.png

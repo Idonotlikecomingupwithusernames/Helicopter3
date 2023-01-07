@@ -1,0 +1,16 @@
+# Blender MTL File: 'None'
+# Material Count: 1
+
+newmtl checkboard
+Ns 63.999992
+Ka 1.000000 1.000000 1.000000
+Kd 0.712351 0.712351 0.712351
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd map_diffuse.jpeg
+map_Ks white.jpeg
+map_Ka white.jpeg
+map_Ke black.jpeg
