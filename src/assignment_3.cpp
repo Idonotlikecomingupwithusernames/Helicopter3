@@ -6,6 +6,7 @@
 #include "mygl/camera.h"
 
 #include "helicopter.h"
+#include <stb_image/stb_image.h>
 
 struct SpotLight
 {
@@ -369,6 +370,34 @@ int main(int argc, char** argv)
     /* setup scene */
     sceneInit(width, height);
 
+    /* Load all textures */
+    int nrChannels;
+    // Ground
+    unsigned char *ground_black = stbi_load("assets/ground/black.jpeg", &width, &height, &nrChannels, 0);
+    unsigned char *ground_map_diffuse = stbi_load("assets/ground/map_diffuse.jpeg", &width, &height, &nrChannels, 0);
+    unsigned char *ground_white = stbi_load("assets/ground/white.jpeg", &width, &height, &nrChannels, 0);
+    // Helicopter
+    unsigned char *helicopter_black = stbi_load("assets/helicopter/black.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_body_map_ao = stbi_load("assets/helicopter/body_map_ao.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_body_map_diffuse = stbi_load("assets/helicopter/body_map_diffuse.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_body_map_specular = stbi_load("assets/helicopter/body_map_specular.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_light_map_diffuse = stbi_load("assets/helicopter/light_map_diffuse.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_rotor_map_diffuse = stbi_load("assets/helicopter/rotor_map_diffuse.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_spotlight_map_ao = stbi_load("assets/helicopter/spotlight_map_ao.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_spotlight_map_diffuse = stbi_load("assets/helicopter/spotlight_map_diffuse.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_spotlight_map_emissive = stbi_load("assets/helicopter/spotlight_map_emissive", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_strobe_map_specular = stbi_load("assets/helicopter/strobe_map_specular.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_strobe_map_emissive = stbi_load("assets/helicopter/strobe_map_emissive.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_strobe_metal_diffuse = stbi_load("assets/helicopter/strobe_metal_diffuse.png", &width, &height, &nrChannels, 0);
+    unsigned char *helicopter_white = stbi_load("assets/helicopter/white.png", &width, &height, &nrChannels, 0);
+    // Cube Map
+    unsigned char *cubemap_negx = stbi_load("assets/Maskonaive2/negx.jpg", &width, &height, &nrChannels, 0);
+    unsigned char *cubemap_negy = stbi_load("assets/Maskonaive2/negy.jpg", &width, &height, &nrChannels, 0);
+    unsigned char *cubemap_negz = stbi_load("assets/Maskonaive2/negz.jpg", &width, &height, &nrChannels, 0);
+    unsigned char *cubemap_posx = stbi_load("assets/Maskonaive2/posx.jpg", &width, &height, &nrChannels, 0);
+    unsigned char *cubemap_posy = stbi_load("assets/Maskonaive2/posy.jpg", &width, &height, &nrChannels, 0);
+    unsigned char *cubemap_posz = stbi_load("assets/Maskonaive2/posz.jpg", &width, &height, &nrChannels, 0);
+
     /*-------------- main loop ----------------*/
     double timeStamp = glfwGetTime();
     double timeStampNew = 0.0;
@@ -376,7 +405,6 @@ int main(int argc, char** argv)
     {
         /* poll and process input and window events */
         glfwPollEvents();
-
         /* update scene */
         timeStampNew = glfwGetTime();
         sceneUpdate(timeStampNew - timeStamp);
