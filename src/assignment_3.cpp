@@ -4,6 +4,8 @@
 #include "mygl/shader.h"
 #include "mygl/model.h"
 #include "mygl/camera.h"
+#include "mygl/cube_map.h"
+#include "mygl/geometry.h"
 
 #include "helicopter.h"
 #include <stb_image/stb_image.h>
@@ -28,14 +30,17 @@ struct
 
     Helicopter heli;
     Model modelGround;
+    CubeMap cubeMap;
 
     ShaderProgram shaderColor;
+    ShaderProgram shaderSkybox;
 
     SpotLight whiteLights[3];
     SpotLight redLight;
 
     bool whiteLightsAreOn = true;
     bool redLightIsOn = true;
+    float redLightTimer = 0.0f;
     bool isDay = false;
 } sScene;
 
@@ -171,10 +176,25 @@ void sceneInit(float width, float height)
     sScene.modelGround = modelLoad("assets/ground/ground.obj").front();
 
     sScene.shaderColor = shaderLoad("shader/default.vert", "shader/color.frag");
+    sScene.shaderSkybox = shaderLoad("shader/skybox.vert", "shader/skybox.frag");
+
+    sScene.cubeMap = cubeMapCreate(
+      cube::vertexPos,
+      cube::indices,
+      {
+        "assets/Maskonaive2/posx.jpg",
+        "assets/Maskonaive2/negx.jpg",
+        "assets/Maskonaive2/posy.jpg",
+        "assets/Maskonaive2/negy.jpg",
+        "assets/Maskonaive2/posz.jpg",
+        "assets/Maskonaive2/negz.jpg"
+      }
+    );
+
 
     /* Setup lights very inefficiently */
-    sScene.whiteLights[0].position = Vector3D(-1.0, 5.0, -2.0);
-    sScene.whiteLights[1].position = Vector3D(1.0, 5.0, -2.0);
+    sScene.whiteLights[0].position = sScene.heli.position + Vector3D(-1.0, 0.0, -2.0);
+    sScene.whiteLights[1].position = sScene.heli.position + Vector3D(1.0, 0.0, -2.0);
     sScene.whiteLights[0].direction = Vector4D(1.0, 0.0, 0.0, 1.0);
     sScene.whiteLights[1].direction = Vector4D(-1.0, 0.0, 0.0, 1.0);
 
@@ -187,17 +207,17 @@ void sceneInit(float width, float height)
     }
 
     sScene.whiteLights[2] = {
-        Vector3D(0.0, 5.0, 0.0),
+        sScene.heli.position + Vector3D(0.0, 0.0, 0.0),
         Vector3D(0.0, 0.0, 1.0),
         Vector4D(1.0, 1.0, 1.0, 1.0),
         0.6,
         0.09,
         0.032,
-        to_radians(50.0)
+        to_radians(40.0)
     };
 
     sScene.redLight = {
-        Vector3D(0.0, 2.0, -5.0),
+        sScene.heli.position + Vector3D(0.0, 0.0, -5.0),
         Vector3D(0.0, 1.0, 0.0),
         Vector4D(1.0, 0.2, 0.2, 1.0),
         0.6,
@@ -214,8 +234,12 @@ void sceneUpdate(float dt)
     if (sScene.cameraFollowHeli)
         cameraFollow(sScene.camera, sScene.heli.position);
 
-    /* Toggle strobe every 2 seconds (takes a few seconds to work properly) */
-    sScene.redLightIsOn = !int(fmod(int(glfwGetTime()), 2)) ? !sScene.redLightIsOn : sScene.redLightIsOn;
+    /* Toggle strobe every second */
+    sScene.redLightTimer += dt;
+    if(sScene.redLightTimer > 1.0f){
+        sScene.redLightTimer = 0.0f;
+        sScene.redLightIsOn = !sScene.redLightIsOn;
+    }
 }
 
 void sceneDraw()
@@ -229,6 +253,22 @@ void sceneDraw()
         Matrix4D proj = cameraProjection(sScene.camera);
         Matrix4D view = cameraView(sScene.camera);
 
+        /* Draw skybox */
+        glDepthMask(GL_FALSE);
+        glUseProgram(sScene.shaderSkybox.id);
+
+        shaderUniform(sScene.shaderSkybox, "uProj", proj);
+        shaderUniform(sScene.shaderSkybox, "uView", Matrix4D(Matrix3D(view)));
+        shaderUniform(sScene.shaderSkybox, "uIsDay", 1 * sScene.isDay);
+
+        glBindVertexArray(sScene.cubeMap.mesh.vao);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, sScene.cubeMap.texture.id);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        glBindVertexArray(0);
+        glDepthMask(GL_TRUE);
+
+
         glUseProgram(sScene.shaderColor.id);
         shaderUniform(sScene.shaderColor, "uProj",  proj);
         shaderUniform(sScene.shaderColor, "uView",  view);
@@ -237,16 +277,15 @@ void sceneDraw()
         /* Pass camera position to calculate viewDir */
         shaderUniform(sScene.shaderColor, "uCamPos",  sScene.camera.position);
 
-        /* Pass ambient factor */
-        shaderUniform(sScene.shaderColor, "uAmbient",  float(0.1));
-
         /* Pass directional light */
         shaderUniform(sScene.shaderColor, "uDirLight.direction",  Vector3D(0.0, -1.0, -1.0));
 
         if (sScene.isDay){
             shaderUniform(sScene.shaderColor, "uDirLight.color",  Vector4D(0.4, 0.4, 0.3, 1.0));
+            shaderUniform(sScene.shaderColor, "uAmbient",  Vector4D(0.3, 0.3, 0.3, 1.0));
         } else {
-            shaderUniform(sScene.shaderColor, "uDirLight.color",  Vector4D(0.05, 0.05, 0.07, 1.0));
+            shaderUniform(sScene.shaderColor, "uDirLight.color",  Vector4D(0.00, 0.00, 0.00, 1.0));
+            shaderUniform(sScene.shaderColor, "uAmbient",  Vector4D(0.05, 0.05, 0.2, 1.0));
         }
 
         /* Toggle white lights */
@@ -307,15 +346,33 @@ void sceneDraw()
 
             for(auto& material : model.material)
             {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, material.map_ambient_occlusion.id);
+
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, material.map_diffuse.id);
+
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, material.map_specular.id);
+
+                glActiveTexture(GL_TEXTURE3);
+                glBindTexture(GL_TEXTURE_2D, material.map_emission.id);
+
+                glBindVertexArray(model.mesh.vao);
+
+                glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texAO"), 0);
+                glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDIF"), 1);
+                glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texSPEC"), 2);
+                glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texEM"), 3);
+
                 /* set material properties */
-                shaderUniform(sScene.shaderColor, "uMaterial.diffuse", material.diffuse);
-                /*
-                * This is the correct implementation, which unfortunetaly leads to whitewashing everything
                 shaderUniform(sScene.shaderColor, "uMaterial.ambient", Vector4D(material.ambient, 1.0));
-                */
-                shaderUniform(sScene.shaderColor, "uMaterial.diffuse", Vector4D(material.diffuse, 1.0));
+                // Is Vector4D(material.diffuse, 1.0) not the correct solution here?
+                shaderUniform(sScene.shaderColor, "uMaterial.diffuse", Vector4D(1.0, 1.0, 1.0, 1.0));
                 shaderUniform(sScene.shaderColor, "uMaterial.specular", Vector4D(material.specular, 1.0));
+
                 shaderUniform(sScene.shaderColor, "uMaterial.shininess", material.shininess);
+                shaderUniform(sScene.shaderColor, "uMaterial.emission", material.emission);
 
                 glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
             }
@@ -327,19 +384,35 @@ void sceneDraw()
 
         for(auto& material : sScene.modelGround.material)
         {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, material.map_ambient_occlusion.id);
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, material.map_diffuse.id);
+
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, material.map_specular.id);
+
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, material.map_emission.id);
+
+            glBindVertexArray(sScene.modelGround.mesh.vao);
+
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texAO"), 0);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDIF"), 1);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texSPEC"), 2);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texEM"), 3);
+            
             /* set material properties */
-            shaderUniform(sScene.shaderColor, "uMaterial.diffuse", material.diffuse);
-            /*
-            * This is the correct implementation, which unfortunetaly leads to whitewashing everything
             shaderUniform(sScene.shaderColor, "uMaterial.ambient", Vector4D(material.ambient, 1.0));
-            */
             shaderUniform(sScene.shaderColor, "uMaterial.diffuse", Vector4D(material.diffuse, 1.0));
             shaderUniform(sScene.shaderColor, "uMaterial.specular", Vector4D(material.specular, 1.0));
+
+            shaderUniform(sScene.shaderColor, "uMaterial.emission", material.emission);
             shaderUniform(sScene.shaderColor, "uMaterial.shininess", material.shininess);
 
             glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
         }
-
     }
 
     /* cleanup opengl state */
@@ -369,34 +442,6 @@ int main(int argc, char** argv)
 
     /* setup scene */
     sceneInit(width, height);
-
-    /* Load all textures */
-    int nrChannels;
-    // Ground
-    unsigned char *ground_black = stbi_load("assets/ground/black.jpeg", &width, &height, &nrChannels, 0);
-    unsigned char *ground_map_diffuse = stbi_load("assets/ground/map_diffuse.jpeg", &width, &height, &nrChannels, 0);
-    unsigned char *ground_white = stbi_load("assets/ground/white.jpeg", &width, &height, &nrChannels, 0);
-    // Helicopter
-    unsigned char *helicopter_black = stbi_load("assets/helicopter/black.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_body_map_ao = stbi_load("assets/helicopter/body_map_ao.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_body_map_diffuse = stbi_load("assets/helicopter/body_map_diffuse.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_body_map_specular = stbi_load("assets/helicopter/body_map_specular.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_light_map_diffuse = stbi_load("assets/helicopter/light_map_diffuse.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_rotor_map_diffuse = stbi_load("assets/helicopter/rotor_map_diffuse.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_spotlight_map_ao = stbi_load("assets/helicopter/spotlight_map_ao.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_spotlight_map_diffuse = stbi_load("assets/helicopter/spotlight_map_diffuse.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_spotlight_map_emissive = stbi_load("assets/helicopter/spotlight_map_emissive", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_strobe_map_specular = stbi_load("assets/helicopter/strobe_map_specular.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_strobe_map_emissive = stbi_load("assets/helicopter/strobe_map_emissive.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_strobe_metal_diffuse = stbi_load("assets/helicopter/strobe_metal_diffuse.png", &width, &height, &nrChannels, 0);
-    unsigned char *helicopter_white = stbi_load("assets/helicopter/white.png", &width, &height, &nrChannels, 0);
-    // Cube Map
-    unsigned char *cubemap_negx = stbi_load("assets/Maskonaive2/negx.jpg", &width, &height, &nrChannels, 0);
-    unsigned char *cubemap_negy = stbi_load("assets/Maskonaive2/negy.jpg", &width, &height, &nrChannels, 0);
-    unsigned char *cubemap_negz = stbi_load("assets/Maskonaive2/negz.jpg", &width, &height, &nrChannels, 0);
-    unsigned char *cubemap_posx = stbi_load("assets/Maskonaive2/posx.jpg", &width, &height, &nrChannels, 0);
-    unsigned char *cubemap_posy = stbi_load("assets/Maskonaive2/posy.jpg", &width, &height, &nrChannels, 0);
-    unsigned char *cubemap_posz = stbi_load("assets/Maskonaive2/posz.jpg", &width, &height, &nrChannels, 0);
 
     /*-------------- main loop ----------------*/
     double timeStamp = glfwGetTime();
